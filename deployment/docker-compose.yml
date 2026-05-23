@@ -1,0 +1,18 @@
+services:
+  percepta-web:
+    build:
+      context: ..
+      dockerfile: deployment/web.Dockerfile
+    environment:
+      NODE_ENV: production
+      PERCEPTA_SITE_ID: local-site
+      PERCEPTA_ZONE_ID: default-zone
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  edge-gateway:
+    image: node:20-alpine
+    working_dir: /app
+    command: ["node", "-e", "console.log('edge gateway placeholder: connect RTSP/WebRTC workers here')"]
+    restart: unless-stopped
