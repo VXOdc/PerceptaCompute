@@ -133,12 +133,16 @@ function drawOverlay(canvas: HTMLCanvasElement, objects: TrackedObject[], alpha 
 }
 
 // rVFC shim — falls back to rAF on browsers without requestVideoFrameCallback
-type VideoFrameCallback = (now: DOMHighResTimeStamp, metadata: Record<string, unknown>) => void;
-declare global {
-  interface HTMLVideoElement {
-    requestVideoFrameCallback?(cb: VideoFrameCallback): number;
-    cancelVideoFrameCallback?(handle: number): void;
-  }
+function supportsVideoFrameCallback(
+  video: HTMLVideoElement
+): video is HTMLVideoElement & {
+  requestVideoFrameCallback: NonNullable<HTMLVideoElement['requestVideoFrameCallback']>;
+  cancelVideoFrameCallback: NonNullable<HTMLVideoElement['cancelVideoFrameCallback']>;
+} {
+  return (
+    'requestVideoFrameCallback' in video &&
+    typeof video.requestVideoFrameCallback === 'function'
+  );
 }
 
 export default function Camera({
@@ -332,8 +336,9 @@ export default function Camera({
 
   const stopCurrentFeed = useCallback(() => {
     if (animRef.current)    { cancelAnimationFrame(animRef.current); animRef.current = null; }
-    if (rVFCHandle.current && videoRef.current?.cancelVideoFrameCallback) {
-      videoRef.current.cancelVideoFrameCallback(rVFCHandle.current);
+    const video = videoRef.current;
+    if (rVFCHandle.current && video && supportsVideoFrameCallback(video)) {
+      video.cancelVideoFrameCallback(rVFCHandle.current);
       rVFCHandle.current = null;
     }
     if (streamRef.current)  { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
@@ -398,10 +403,10 @@ export default function Camera({
 
         // T1: Use requestVideoFrameCallback if available, else fall back to rAF
         const video = videoRef.current;
-        if (video && video.requestVideoFrameCallback) {
+        if (video && supportsVideoFrameCallback(video)) {
           const loop = () => {
             onVideoFrame();
-            rVFCHandle.current = video.requestVideoFrameCallback!(loop);
+            rVFCHandle.current = video.requestVideoFrameCallback(loop);
           };
           rVFCHandle.current = video.requestVideoFrameCallback(loop);
         } else {
