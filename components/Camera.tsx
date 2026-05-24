@@ -132,17 +132,21 @@ function drawOverlay(canvas: HTMLCanvasElement, objects: TrackedObject[], alpha 
   ctx.restore();
 }
 
-// rVFC shim — falls back to rAF on browsers without requestVideoFrameCallback
+// rVFC shim — falls back to rAF on browsers without requestVideoFrameCallback.
+// Use a standalone interface instead of augmenting HTMLVideoElement (avoids TS
+// "Overload signatures must all be optional or required" on Vercel/strict builds).
+interface VideoFrameCallbackElement extends HTMLVideoElement {
+  requestVideoFrameCallback(
+    callback: (now: DOMHighResTimeStamp, metadata: VideoFrameCallbackMetadata) => void,
+  ): number;
+  cancelVideoFrameCallback(handle: number): void;
+}
+
 function supportsVideoFrameCallback(
-  video: HTMLVideoElement
-): video is HTMLVideoElement & {
-  requestVideoFrameCallback: NonNullable<HTMLVideoElement['requestVideoFrameCallback']>;
-  cancelVideoFrameCallback: NonNullable<HTMLVideoElement['cancelVideoFrameCallback']>;
-} {
-  return (
-    'requestVideoFrameCallback' in video &&
-    typeof video.requestVideoFrameCallback === 'function'
-  );
+  video: HTMLVideoElement,
+): video is VideoFrameCallbackElement {
+  const candidate = video as Partial<VideoFrameCallbackElement>;
+  return typeof candidate.requestVideoFrameCallback === 'function';
 }
 
 export default function Camera({
