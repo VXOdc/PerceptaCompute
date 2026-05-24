@@ -122,7 +122,7 @@ function drawOverlay(canvas: HTMLCanvasElement, objects: TrackedObject[], alpha 
 export default function Camera({
   onDetection,
   onStatusChange,
-  interval = 400,
+  interval = 150,
   objects = [],
 }: CameraProps) {
   const videoRef     = useRef<HTMLVideoElement>(null);
